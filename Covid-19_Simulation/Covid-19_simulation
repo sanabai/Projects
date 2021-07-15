@@ -1,0 +1,265 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#define SIZE 10001
+#define MAX_VERTICES 10000 // initially defining the max no of vertexes we can have in a graph
+#define MAX_EDGES 3000 // initially defining the max no of edges from each vertex we can have in a graph
+int counter=0,suscept_counter=0,infect_counter=0,recover_counter=0;
+int size = 0;
+struct priority_queue // structure for priority queue
+{   
+    int day_no; // initializing day number
+    int eventaction;// initializing event 
+    int number; // initializing number
+};
+struct priority_queue A[SIZE]; //declaration of array
+// function for initializing the heap
+void initializeheap()
+{   
+    for(int i=0; i<SIZE; i++)
+    {
+        A[i].day_no = 0;
+        A[i].eventaction=0;//1 for transmission,2 for recovery
+        A[i].number=0;
+    }
+}
+//function to swap numbers
+void swap(int *a, int *b) {
+  int temp = *b;
+  *b = *a;
+  *a = temp;
+}
+// Function to heapify the tree
+void heapify( int size, int i) {
+  if (size == 1) {
+    return;
+  } else {
+    // Find the largest among root, left child and right child
+    int smallest = i;
+    int left = 2 * i + 1; // each vertex corresponding left child and right child index
+    int right = 2 * i + 2;
+    // if both children event time is greater than its event time then we swap the its event time with the smallest event time of child
+    // and then we call heapify function again on that swapped vertex and go down until the min heap is satisfied
+    if (left < size && A[left].day_no < A[smallest].day_no)
+      smallest = left;
+    if (right < size && A[right].day_no < A[smallest].day_no)
+      smallest = right;
+
+    // Swap and continue heapifying if root is not largest
+    if (smallest != i) {
+      swap(&A[i].day_no, &A[smallest].day_no);
+      swap(&A[i].eventaction, &A[smallest].eventaction);
+      swap(&A[i].number, &A[smallest].number);
+      heapify( size, smallest);
+    }
+  }
+}
+// Function to insert an element into the tree
+void insert(int n,int a,int node) {
+  if (size == 0) {
+    A[0].day_no=n;A[0].eventaction=a;A[0].number=node;
+    size += 1;
+    
+  } else {
+    A[size].day_no=n;A[size].eventaction=a;A[size].number=node;
+    size += 1;
+    for (int i = size / 2 - 1; i >= 0; i--) {
+      heapify( size, i);
+    }
+  }
+}
+// Function to delete an element from the tree
+void deleteRoot() {
+  A[0].day_no=A[size-1].day_no;
+  A[0].eventaction=A[size-1].eventaction;
+  A[0].number=A[size-1].number;
+  size -= 1;
+  heapify( size, 0);
+}
+void graph_initialize(int **adjacency_matrix, int no_of_vertices)  // function for initializing the adjacency matrix
+{
+    for(int i=0; i<no_of_vertices; i=i+1)
+    {
+        for(int j=0; j<no_of_vertices; j=j+1)
+        {
+            adjacency_matrix[i][j] = 0; // initially all values are zero
+        }
+    }
+}
+void create_graph(int **adjacent_matrix, int no_of_vertices, int max_no_of_edges)  // function for creating the graph
+{
+    int vertex_counter,edge_counter,link_vertex;
+    for(vertex_counter=0; vertex_counter < no_of_vertices; vertex_counter=vertex_counter+1) // counter for incrementing the vertexes
+    {
+        for(edge_counter=0; edge_counter < max_no_of_edges; edge_counter=edge_counter+1)  // counter for incrementing the edges
+        {
+            if(rand()%2==1) // vertex has a edge only if this condition satisfies
+            {
+                link_vertex = rand() % no_of_vertices;  // randomly generating the vertex for creating an edge between vertexes
+                adjacent_matrix[vertex_counter][link_vertex] = 1; // if there is an edge between the two vertexes then make it 1
+            }
+        }
+    }
+}
+//stores status
+struct status{
+    int s;int t;
+};
+// function of initial array
+void initial_array(struct status*arr,int no_of_vertexes,int tmax){
+    for(int i=0;i<no_of_vertexes;i++){
+        arr[i].s=0;arr[i].t=2*tmax;//0 is susceptible,1 is infected,2 is recovered
+    }
+}
+// function of initial infects
+void intial_infects(struct status*arr,int no_of_infected_vertexes){
+    for(int i=0;i<no_of_infected_vertexes;i++){
+        arr[i].t=0;
+        insert(0,1,i);
+    }
+}
+ // function for calculating minimum value of the three given values
+int minimum(int source_time,int target_time,int tmax){
+    if(source_time<target_time && source_time<tmax){
+        return source_time;
+    }
+    else{
+        if(target_time<tmax){
+            return target_time;
+        }
+        else{
+           return tmax; 
+        }
+    }
+}
+// function for time taken
+int time_taken(float val){
+    int temp=rand()%100;
+    int counter=1;
+    while(temp>val*100){
+        temp=rand()%100;
+        counter++;
+    }
+    
+    return counter;
+}
+// function to find SIR 
+void find_trans_SIR( struct status*arr,int event_time,float tp,int source,int target,int tmax){
+    if (arr[target].s==0){
+        int inf_time=event_time+time_taken(tp);
+        if(inf_time<minimum(arr[source].t,arr[target].t,tmax)){
+            insert(inf_time,1,target);
+            arr[target].t=inf_time;
+        }
+    }
+}
+// function for transmission vertexes that is when vertex is susceptible and has the possibility to transmit
+void process_trans_SIR(int**adjagency_matrix,struct status*arr,int value,int event_time,float tp,float rp,
+    int *times_arr,int*suscept_arr,int*infect_arr,int*recover_arr,int tmax,int no_of_vertexes){
+        times_arr[counter]=counter;
+        suscept_arr[counter]=--suscept_counter;// no of susceptible vertexes reduce by 1
+        infect_arr[counter]=++infect_counter; // no of infected vertexes increase by 1
+        recover_arr[counter]=recover_counter; // no of recovered vertexes remain same
+        counter=counter+1;
+        arr[value].s=1;arr[value].t=event_time+time_taken(rp); // updating the status of that matrix to infected and also time getting updated
+        if(arr[value].t<tmax){
+            insert(arr[value].t,2,value);
+        }
+        for(int adjacent_node=0;adjacent_node<no_of_vertexes;adjacent_node++){
+            if(adjagency_matrix[value][adjacent_node]==1){
+                find_trans_SIR(arr,event_time,tp,value,adjacent_node,tmax);
+            }
+        }
+}
+// function for recovered vertexes it happens if the vertex has no possibility of transmission
+void process_rec_SIR(struct status*arr,int value,int event_time,int*times_arr,int*suscept_arr,int*infect_arr,int*recover_arr){
+    times_arr[counter]=counter;
+    suscept_arr[counter]=suscept_counter;// no of susceptible vertexes remain same
+    infect_arr[counter]=--infect_counter; // no of infected vertexes reduce by 1
+    recover_arr[counter]=++recover_counter; // no of recovered vertexes increase by 1
+    counter=counter+1;
+    arr[value].s=2;   // updating the status of that vertex to recovered
+}
+void initialize_array(int *array, int tmax) // function for initializing the values of times,susceptible,infected and recovered array to 0
+{
+    for(int i=0;i<tmax;i=i+1)
+    {
+        array[i] = 0;
+    }
+}
+void display_array(int *array, int tmax)  // function for displaying the times,susceptible,infected,recovered arrays
+{
+    for(int i=0; i<tmax; i=i+1)
+    {
+        printf("%d\n",array[i]);
+    }
+    printf("\n");
+}
+int main(){
+    int tmax=300; // maximum no of days for running simulation
+    float transmission_rate=0.5,recovery_rate=0.2;  // given recovery and transmission rate
+    srand ( time(NULL) ); // randomly generating the no of vertexes and edges in the graph
+    int noofvertices =0;
+    while( noofvertices<1){ // opp until we get no of vertexes greater than 0
+    noofvertices=rand() % MAX_VERTICES;
+    }
+    printf("%d\n", noofvertices);
+    /*number of maximum edges a vertex can have*/
+    srand ( time(NULL) );
+    int maxNumberOfEdges = rand() % MAX_EDGES;
+    printf("%d\n",maxNumberOfEdges);
+    int **adjacency_matrix = (int**)malloc(noofvertices*sizeof(int *));  // graph implementation using adjacency matrix
+    for (int i=0; i<noofvertices; i++)
+            adjacency_matrix[i] = (int*)malloc(noofvertices*sizeof(int));  // adjacency matrix is a square matrix of size=no_of_vertexes
+            // adjacency matrix is a square matrix of size=no_of_vertexes
+    graph_initialize(adjacency_matrix,noofvertices);  // initializing the adjacency matrix with all values to zero
+    create_graph(adjacency_matrix,noofvertices,maxNumberOfEdges); 
+    //initialize_heap;
+    int no_of_infected_vertexes=rand() % noofvertices;
+    while(no_of_infected_vertexes == 0)
+    {
+        no_of_infected_vertexes = rand() % noofvertices;  // randomly generating the no of infected vertexes which lies within the boundary of no of vertexes
+    }
+    struct status*arr=(struct status*)malloc(sizeof(struct status)*noofvertices);
+    initial_array(arr,noofvertices,tmax);
+    intial_infects(arr,no_of_infected_vertexes);
+    int*times_arr=(int*)malloc(sizeof(int)*tmax); // initializing the array for days..
+    initialize_array(times_arr,tmax);
+    int*suscept_arr=(int*)malloc(sizeof(int)*tmax);  // initializing the array for no of susceptible vertexes on each day
+    initialize_array(suscept_arr,tmax);
+    int*infect_arr=(int*)malloc(sizeof(int)*tmax);  // initializing the array for no of susceptible vertexes on each day
+    initialize_array(infect_arr,tmax);
+    int*recover_arr=(int*)malloc(sizeof(int)*tmax);   // initializing the array for no of susceptible vertexes on each day
+    initialize_array(recover_arr,tmax);
+    times_arr[0]=0; // initially start from 0th day
+    suscept_arr[0]=noofvertices; // initially all the vertexes are susceptible
+    infect_arr[0]=0; // initially no vertexes are infected
+    recover_arr[0]=0; // initially no vertexes are recovered
+    counter++;
+    suscept_counter=noofvertices;
+    int time_counter=1; // starting the day counter with 1 as we have entered the data for 0th day
+    while(size!=0 && time_counter<tmax){  // loop until queue is empty or max days are completed
+        int event_time=time_counter;
+        int eventaction=A[0].eventaction;
+        int value=A[0].number;
+        deleteRoot(); // delete the first vertex
+        if(eventaction==1){ // if the vertex has a possibility of transmitting the disease...that is that vertex corresponds to infected vertex
+            if(arr[value].s==0){ // and if that vertex is susceptible
+				 // calling the process_trans_SIR on the vertex
+                process_trans_SIR(adjacency_matrix,arr,value,event_time,transmission_rate,recovery_rate,times_arr,suscept_arr,infect_arr,recover_arr,tmax,
+                noofvertices);
+            }
+        }
+        else{ // and else condition
+            process_rec_SIR(arr,value,event_time,times_arr,suscept_arr,infect_arr,recover_arr);
+        }
+        time_counter++;
+    }
+    printf("Time\tS\tI\tR\n");
+    for (int i = 0; i < counter; ++i)
+    {
+        printf("%d\t%d\t%d\t%d\n", times_arr[i], suscept_arr[i], infect_arr[i], recover_arr[i]);
+    }
+}
+// here in my code the recovery rate shows 0 for higher values of vertices and edges and sometimes its gets the recovery rate 
+// it perfectly works for smaller values of vertices and edges . I tried to figure it out but i failed to find the error.
